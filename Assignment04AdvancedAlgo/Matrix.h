@@ -14,6 +14,9 @@ using groupType = vector<groupOfType>;
 template<class T>
 using allGroups = map<T, groupType>;
 
+/*
+temporary print function with additional data for debug
+*/
 template<typename Groups>
 void printRetVal(const Groups& retval,int i) {
 	cout << "****************" << endl;
@@ -39,28 +42,55 @@ void printRetVal(const Groups& retval,int i) {
 	}
 }
 
+/*
+template recursive class
+*/
 template<class T, size_t DIMENSIONS>
 class Matrix
 {
-private:
-	vector<Matrix<T, DIMENSIONS - 1>> m_mat;
-
 public:
+	vector<Matrix<T, DIMENSIONS - 1>> m_mat;
+	int my_max_dim;
+	int lower_max_dim;
 	Matrix(initializer_list<Matrix<T, DIMENSIONS-1>> vm)
 	{
+		my_max_dim = 0;
+		//construct matrix and find my max dim
 		for (auto m : vm)
 		{
 			m_mat.push_back(m);
+			my_max_dim++;
 		}
+		lower_max_dim = 0;
+
+		//find the max_dim of lower matrixes
+		for (auto m : m_mat)
+		{
+			if (lower_max_dim < m.my_max_dim) {
+				lower_max_dim = m.my_max_dim;
+			}
+		}
+		//update each lower matrixes dim to be the max_dim
+		for (auto& tempMat : m_mat)
+		{
+			if (lower_max_dim > tempMat.my_max_dim) {
+				cout << "modifiying dimension: " << DIMENSIONS - 1 << endl;
+				tempMat.my_max_dim = lower_max_dim;
+			}
+		}
+		cout << endl;
+		
 	}
 
-	template<class FilterType>
-	allGroups<T> groupValues(FilterType & f)
+	template<class FilterType, typename R = std::result_of<FilterType&(T)>::type>
+	allGroups<R> groupValues(FilterType& f)
 	{
-		allGroups<T> retVal;
+		
+
+		allGroups<R> retVal;
 		for (size_t i = 0; i < m_mat.size(); i++)
 		{
-			allGroups<T> tempAllGroups = m_mat[i].groupValues(f);
+			allGroups<R> tempAllGroups = m_mat[i].groupValues(f);
 			for (auto& tempMapValue : tempAllGroups)
 			{
 				//for each map.second = value = groupType (map.first = key)
@@ -100,38 +130,42 @@ public:
 	}
 };
 
+/*
+recursion base
+*/
 template<class T>
 class Matrix<T, 1>
 {
-private:
-	vector<T> m_mat;
 public:
+	vector<T> m_mat;
+	int my_max_dim;
 	Matrix(initializer_list<T> vm)
 	{
+		my_max_dim = vm.size();
 		for (auto m : vm)
 		{
 			m_mat.push_back(m);
 		}
 	}
 
-	template<class FilterType>
-	allGroups<T> groupValues(FilterType & f)
+	template<class FilterType,typename R = std::result_of<FilterType&(T)>::type>
+	allGroups<R> groupValues(FilterType & f)
 	{
-		allGroups<T> retVal;
+		allGroups<R> retVal;
 		for (size_t i = 0; i < m_mat.size(); i++)
 		{
 			auto type = f(m_mat[i]);
 			//if key not found insert into map
 			if (retVal.find(type) == retVal.end())
 			{
-				groupType gst;
-				groupOfType gt;
+				groupType gt;
+				groupOfType got;
 				coord c;
 
 				c.push_front(i);
-				gt.push_back(c);
-				gst.push_back(gt);
-				retVal[type] = gst;
+				got.push_back(c);
+				gt.push_back(got);
+				retVal[type] = gt;
 			}
 			else //insert into exsiting grouptype
 			{
@@ -146,7 +180,7 @@ public:
 				retVal[type] = gst;
 			}
 		}
-
+	
 		return retVal;
 	}
 };
@@ -176,6 +210,22 @@ void print(const Groups& all_groups) {
 		}
 	}
 }
+
+template<class T, size_t DIMENSIONS>
+void printDimensions(Matrix<T, DIMENSIONS> mat) {
+	cout << "dimension: " << DIMENSIONS << " max_dim: " << mat.my_max_dim << endl;
+	for (auto m : mat.m_mat)
+	{
+		printDimensions(m);
+	}
+	
+}
+
+template<class T>
+void printDimensions(Matrix<T, 1> mat) {
+	cout << "dimension: " << 1 << " max_dim: " << mat.my_max_dim << endl;
+}
+
 
 
 
